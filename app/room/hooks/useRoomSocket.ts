@@ -1,0 +1,112 @@
+import { useEffect, useState, useCallback } from "react";
+import { toast } from "sonner";
+import { Question, SubmissionResult } from "@/lib/types";
+import api from "@/lib/url";
+
+// Discriminated union types for WebSocket messages
+type UserListMessage = {
+  type: "USER_LIST";
+  users: string[];
+};
+
+type UserJoinedMessage = {
+  type: "USER_JOINED";
+  userName: string;
+};
+
+type QuestionUpdateMessage = {
+  type: "QUESTION_UPDATE";
+  question: Question;
+};
+
+type SolutionReviewMessage = {
+  type: "SOLUTION_REVIEW";
+  solution: SubmissionResult;
+};
+
+type RoomWebSocketMessage =
+  | UserListMessage
+  | UserJoinedMessage
+  | QuestionUpdateMessage
+  | SolutionReviewMessage;
+
+interface UseRoomSocketOptions {
+  roomId: string;
+  onUserJoined?: () => void;
+}
+
+interface UseRoomSocketReturn {
+  socket: WebSocket | null;
+  users: string[];
+  question: Question | null;
+  setQuestion: React.Dispatch<React.SetStateAction<Question | null>>;
+  submissionResult: SubmissionResult | null;
+  setSubmissionResult: React.Dispatch<React.SetStateAction<SubmissionResult | null>>;
+  openFeedback: boolean;
+  setOpenFeedback: React.Dispatch<React.SetStateAction<boolean>>;
+}
+
+export function useRoomSocket({
+  roomId,
+  onUserJoined,
+}: UseRoomSocketOptions): UseRoomSocketReturn {
+  const [socket, setSocket] = useState<WebSocket | null>(null);
+  const [users, setUsers] = useState<string[]>([]);
+  const [question, setQuestion] = useState<Question | null>(null);
+  const [submissionResult, setSubmissionResult] = useState<SubmissionResult | null>(null);
+  const [openFeedback, setOpenFeedback] = useState<boolean>(false);
+
+  useEffect(() => {
+    const ws = new WebSocket(`${api.ws}${roomId}`);
+    
+    ws.onopen = () => {
+      console.log("WebSocket connected");
+    };
+    
+    ws.onmessage = (event: MessageEvent) => {
+      const data = JSON.parse(event.data) as RoomWebSocketMessage;
+
+      switch (data.type) {
+        case "USER_LIST":
+          setUsers(data.users);
+          break;
+        case "USER_JOINED":
+          setUsers((prevUsers) => [...prevUsers, data.userName]);
+          toast.success(`${data.userName} joined`);
+          onUserJoined?.();
+          break;
+        case "QUESTION_UPDATE":
+          setQuestion(data.question);
+          break;
+        case "SOLUTION_REVIEW":
+          setSubmissionResult(data.solution);
+          setOpenFeedback(true);
+          break;
+        default:
+          break;
+      }
+    };
+    
+    ws.onclose = () => {
+      console.log(" WebSocket closed");
+    };
+
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSocket(ws);
+
+    return () => {
+      ws.close();
+    };
+  }, [roomId, onUserJoined]);
+
+  return {
+    socket,
+    users,
+    question,
+    setQuestion,
+    submissionResult,
+    setSubmissionResult,
+    openFeedback,
+    setOpenFeedback,
+  };
+}
