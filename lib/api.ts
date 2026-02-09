@@ -4,8 +4,8 @@ import api from "./url";
 
 // Create axios instance with base configuration
 const apis = axios.create({
-  //baseURL: 'https://pair-code-be.onrender.com',
-  baseURL: process.env.NEXT_PUBLIC_API_URL || `http://localhost:8000`,
+  baseURL: 'https://pair-code-be.onrender.com',
+  //baseURL: process.env.NEXT_PUBLIC_API_URL || `http://localhost:8000`,
   headers: {
     "Content-Type": "application/json",
   },
