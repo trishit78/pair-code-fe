@@ -51,12 +51,20 @@ export function useYjsEditor({ roomId }: UseYjsEditorOptions): UseYjsEditorRetur
       const doc = new Y.Doc();
       ydocRef.current = doc;
       
-      // Create WebSocket provider
+      // Use query params for routing: /ws?room=<roomId>&type=yjs
+      // y-websocket constructs URL as: ${serverUrl}/${roomName}?params
+      // So we use serverUrl with /ws path and empty roomName, with params for routing
       const wsProvider = new WebsocketProvider(
-        `${api.ws}`,
-        `yjs-${roomId}`,
+        `${api.ws.origin}/ws`,        // WebSocket URL with /ws path
+        "",                            // Empty room name (routing via params)
         doc,
-        { connect: true }
+        {
+          connect: true,
+          params: {
+            room: roomId,
+            type: "yjs",
+          },
+        }
       );
       
       wsProvider.on("status", (event: YjsStatusEvent) => {

@@ -57,7 +57,10 @@ export function useRoomSocket({
   const [openFeedback, setOpenFeedback] = useState<boolean>(false);
 
   useEffect(() => {
-    const ws = new WebSocket(`${api.ws}${roomId}`);
+    // Use query params for routing: /ws?room=<roomId>&type=room
+    const wsUrl = `${api.ws.origin}/ws?room=${encodeURIComponent(roomId)}&type=room`;
+    const ws = new WebSocket(wsUrl);
+    console.log('WebSocket connecting to:', wsUrl);
     
     ws.onopen = () => {
       console.log("WebSocket connected");
